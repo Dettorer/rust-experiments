@@ -5,7 +5,7 @@ use std::net::TcpListener;
 const READ_SIZE: usize = 512;
 
 /// Reads incomming data from a stream writes it back to it.
-fn echo<T>(mut stream: T)
+fn echo<T: Read + Write>(mut stream: T)
 where
     T: Read + Write,
 {
@@ -83,6 +83,9 @@ fn main() -> std::io::Result<()> {
             }
         };
 
+        // Under normal circumstances, this function will fork the process, we need to give it
+        // ownership of the server socket so that the child (which won't return) can drop it. The
+        // parent process will give ownership back to us so that we can accept a new client.
         listener = handle_client(client, listener);
     }
 
