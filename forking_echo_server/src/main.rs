@@ -53,6 +53,7 @@ where
 }
 
 fn main() -> std::io::Result<()> {
+    better_panic::install();
     let mut args = std::env::args();
     if args.len() != 2 {
         eprintln!("usage: {} <port>", args.next().unwrap());

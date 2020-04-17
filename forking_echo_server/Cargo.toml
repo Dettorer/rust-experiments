@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 fork = "0.1"
+better-panic = "0.2"
