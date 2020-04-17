@@ -11,17 +11,13 @@ where
 {
     let mut buffer = [0; READ_SIZE];
     loop {
-        let size = match stream.read(&mut buffer) {
-            Ok(size) if size > 0 => size,
-            Ok(_size) => {
-                println!("Client disconnected");
-                break;
-            }
-            Err(ref e) => {
-                eprintln!("Could not read data from client: {}", e);
-                break;
-            }
-        };
+        let size = stream
+            .read(&mut buffer)
+            .expect("Could not read data from client");
+        if size == 0 {
+            println!("Client disconnected");
+            break;
+        }
         match stream.write_all(&buffer[0..size]) {
             Ok(()) => (),
             Err(ref e) if e.kind() == std::io::ErrorKind::BrokenPipe => {
@@ -44,14 +40,13 @@ fn handle_client<T, U>(stream: T, listener: U) -> U
 where
     T: Read + Write,
 {
-    match fork() {
-        Ok(Fork::Child) => {
+    match fork().expect("Could not fork before handling a new client") {
+        Fork::Child => {
             std::mem::drop(listener);
             echo(stream);
             std::process::exit(0);
         }
-        Err(e) => eprintln!("Could not fork before handling client: {}", e),
-        Ok(Fork::Parent(child_pid)) => println!("Handling a new client in process {}", child_pid),
+        Fork::Parent(child_pid) => println!("Handling a new client in process {}", child_pid),
     }
 
     listener
@@ -65,29 +60,16 @@ fn main() -> std::io::Result<()> {
     }
     let port = args.skip(1).next().unwrap();
 
-    let mut listener = match TcpListener::bind(format!("::1:{}", port)) {
-        Ok(listener) => listener,
-        Err(e) => {
-            eprintln!("Error binding on port {}: {}", port, e);
-            std::process::exit(1);
-        }
-    };
+    let mut listener = TcpListener::bind(format!("::1:{}", port))
+        .expect(&format!("Error binding on port {}", port));
 
     loop {
         println!("Waiting new clients");
-        let client = match listener.accept() {
-            Ok((stream, _addr)) => stream,
-            Err(e) => {
-                eprintln!("Error accepting a new client: {}", e);
-                break;
-            }
-        };
+        let (client, _) = listener.accept().expect("Error accepting a new client");
 
         // Under normal circumstances, this function will fork the process, we need to give it
         // ownership of the server socket so that the child (which won't return) can drop it. The
         // parent process will give ownership back to us so that we can accept a new client.
         listener = handle_client(client, listener);
     }
-
-    Ok(())
 }
