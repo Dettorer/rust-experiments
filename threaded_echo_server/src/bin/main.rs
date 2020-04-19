@@ -1,6 +1,6 @@
+use echo_server::ThreadPool;
 use std::io::prelude::*;
 use std::net::TcpListener;
-use std::thread;
 
 const READ_SIZE: usize = 512;
 
@@ -12,7 +12,6 @@ fn echo<T: Read + Write>(mut stream: T) {
             .read(&mut buffer)
             .expect("Could not read data from client");
         if size == 0 {
-            println!("Client disconnected");
             break;
         }
         match stream.write_all(&buffer[0..size]) {
@@ -33,11 +32,12 @@ fn echo<T: Read + Write>(mut stream: T) {
 /// * `stream` - The stream to use when communicating with the client
 /// * `server` - The server resources, it is dropped by the child process and given back by the
 /// parent. Typically, if the client was accepted through a `TcpListener`, this is the listner.
-fn handle_client<T>(stream: T)
+fn handle_client<T>(stream: T, pool: &ThreadPool)
 where
     T: Read + Write + Send + 'static,
 {
-    thread::spawn(|| echo(stream));
+    println!("Got a new client");
+    pool.execute(|| echo(stream))
 }
 
 fn main() -> std::io::Result<()> {
@@ -52,10 +52,14 @@ fn main() -> std::io::Result<()> {
     let listener = TcpListener::bind(format!("::1:{}", port))
         .expect(&format!("Error binding on port {}", port));
 
-    loop {
-        println!("Waiting new clients");
-        let (client, _) = listener.accept().expect("Error accepting a new client");
+    let pool = ThreadPool::new(8);
 
-        handle_client(client);
+    println!("Waiting new clients");
+    for stream in listener.incoming().take(2) {
+        let client = stream.expect("Error accepting a new client");
+
+        handle_client(client, &pool);
     }
+
+    Ok(())
 }
