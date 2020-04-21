@@ -67,6 +67,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "parallel_sum"
 version = "0.1.0"
 dependencies = [
+ "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "structopt 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
