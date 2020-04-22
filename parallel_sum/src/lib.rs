@@ -1,9 +1,14 @@
+use rayon::prelude::*;
 use std::thread::spawn;
 
 const THREAD_COUNT: u8 = 4;
 
 pub fn linear_sum(array: &[u8]) -> u64 {
     array.iter().map(|&i| i as u64).sum()
+}
+
+pub fn rayon_sum(array: &'static [u8]) -> u64 {
+    array.par_iter().map(|&i| i as u64).sum()
 }
 
 pub fn threaded_sum(array: &'static [u8]) -> u64 {
@@ -18,6 +23,8 @@ pub fn threaded_sum(array: &'static [u8]) -> u64 {
         .map(|handle| handle.join().unwrap()) // yield each chunk's sum
         .sum()
 }
+
+// TODO: sum with coroutines
 
 #[cfg(test)]
 mod tests {
@@ -43,5 +50,10 @@ mod tests {
     #[test]
     fn test_threaded() {
         sum_test(threaded_sum);
+    }
+
+    #[test]
+    fn test_rayon() {
+        sum_test(rayon_sum);
     }
 }

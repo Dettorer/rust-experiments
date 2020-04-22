@@ -4,7 +4,7 @@ extern crate lazy_static;
 extern crate test;
 
 use lazy_static::lazy_static;
-use parallel_sum::{linear_sum, threaded_sum};
+use parallel_sum::{linear_sum, threaded_sum, rayon_sum};
 use test::Bencher;
 
 lazy_static! {
@@ -40,4 +40,14 @@ fn bench_threaded_small(bencher: &mut Bencher) {
 #[bench]
 fn bench_threaded_large(bencher: &mut Bencher) {
     bench_large(bencher, threaded_sum);
+}
+
+#[bench]
+fn bench_rayon_small(bencher: &mut Bencher) {
+    bench_small(bencher, rayon_sum);
+}
+
+#[bench]
+fn bench_rayon_large(bencher: &mut Bencher) {
+    bench_large(bencher, rayon_sum);
 }
